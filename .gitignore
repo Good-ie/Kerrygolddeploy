@@ -4,6 +4,8 @@
 /node_modules
 /.pnp
 .pnp.js
+awscliv2.zip
+aws/
 
 # testing
 /coverage
