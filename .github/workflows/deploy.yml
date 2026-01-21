@@ -3,7 +3,7 @@ name: Deploy Application
 on:
   push:
     branches:
-      - main
+      - main   # Trigger deployment automatically on pushes to main branch
 
 jobs:
   deploy:
@@ -14,9 +14,11 @@ jobs:
         working-directory: terraform
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -24,38 +26,52 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # 3️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
+      # 4️⃣ Terraform Init
       - name: Terraform Init
         run: terraform init
 
+      # 5️⃣ Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve \
+          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+
+      # 6️⃣ Read Terraform Outputs
       - name: Read Terraform Outputs
         id: tf_outputs
         run: |
-          echo "EC2_DNS=$(terraform output -raw ec2_public_dns)" >> $GITHUB_ENV
-          echo "ECR_URL=$(terraform output -raw ecr_repository_url)" >> $GITHUB_ENV
-          echo "AWS_REGION=$(terraform output -raw aws_region)" >> $GITHUB_ENV
+          EC2_DNS=$(terraform output -raw ec2_public_dns)
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          AWS_REGION=$(terraform output -raw aws_region)
 
+          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+
+      # 7️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION \
           | docker login --username AWS --password-stdin $ECR_URL
 
+      # 8️⃣ Build Docker image
       - name: Build Docker image
-        run: |
-          docker build -t app .
+        run: docker build -t app .
 
+      # 9️⃣ Tag Docker image
       - name: Tag Docker image
-        run: |
-          docker tag app:latest $ECR_URL:latest
+        run: docker tag app:latest $ECR_URL:latest
 
+      # 🔟 Push Docker image to ECR
       - name: Push Docker image to ECR
-        run: |
-          docker push $ECR_URL:latest
+        run: docker push $ECR_URL:latest
 
+      # 1️⃣1️⃣ Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
