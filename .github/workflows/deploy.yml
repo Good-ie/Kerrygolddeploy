@@ -51,6 +51,7 @@ jobs:
           echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
           echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
           echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+          
 
       # 7️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
