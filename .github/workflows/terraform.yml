@@ -5,12 +5,7 @@ on:
 
 jobs:
   terraform:
-    name: Terraform Apply
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: terraform
 
     steps:
       - name: Checkout repository
@@ -30,14 +25,16 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: terraform
 
       - name: Terraform Validate
         run: terraform validate
+        working-directory: terraform
 
       - name: Terraform Plan
-        run: terraform plan \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        run: terraform plan -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        working-directory: terraform
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve \
-          -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        run: terraform apply -auto-approve -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        working-directory: terraform
