@@ -45,18 +45,18 @@ jobs:
       - name: Read Terraform Outputs
         id: tf_outputs
         run: |
-          EC2_DNS=$(terraform output -raw ec2_public_ip)
+          EC2_HOST=$(terraform output -raw ec2_public_ip)
           if [ -z "$EC2_HOST" ]; then
             echo "EC2 IP is not available or empty"
           else
             echo "EC2_HOST=$EC2_HOST" >> $GITHUB_ENV
           fi
 
-          ECR_URL=$(terraform output -raw ecr_repository_url)
-          if [ -z "$ECR_URL" ]; then
+          ECR_REPOSITORY=$(terraform output -raw ecr_repository_url)
+          if [ -z "$ECR_REPOSITORY" ]; then
             echo "ECR URL is not available or empty"
           else
-            echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+            echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> $GITHUB_ENV
           fi
 
           AWS_REGION=$(terraform output -raw aws_region)
@@ -70,7 +70,7 @@ jobs:
       # 8️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
-          ECR_REGISTRY=$(echo $ECR_URL | cut -d'/' -f1)
+          ECR_REGISTRY=$(echo $ECR_REPOSITORY | cut -d'/' -f1)
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY  
 
     
@@ -80,11 +80,11 @@ jobs:
 
       # 🔟 Tag Docker Image (Tag the built Docker image)
       - name: Tag Docker image
-        run: docker tag app:latest $ECR_URL:latest
+        run: docker tag app:latest $ECR_REPOSITORY:latest
 
       # 1️⃣1️⃣ Push Docker Image to ECR (Push the image to ECR)
       - name: Push Docker image to ECR
-        run: docker push $ECR_URL:latest
+        run: docker push $ECR_REPOSITORY:latest
 
       # 1️⃣2️⃣ Deploy to EC2 (Deploy the Docker image to EC2)
       - name: Deploy to EC2
@@ -94,7 +94,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ env.ECR_URL }}:latest
+            docker pull ${{ env.ECR_REPOSITORY}}:latest
             docker stop app || true
             docker rm app || true
-            docker run -d --name app -p 80:80 ${{ env.ECR_URL }}:latest
+            docker run -d --name app -p 80:80 ${{ env.ECR_REPOSITORY }}:latest
