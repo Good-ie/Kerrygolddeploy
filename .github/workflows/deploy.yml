@@ -41,12 +41,10 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="key_name=${{ secrets.EC2_KEY_NAME }}"
         working-directory: terraform
-
-      # 7️⃣ Read Terraform Outputs (Extract outputs from the Terraform run)
+      # 7️⃣ Read Terraform Outputs
       - name: Read Terraform Outputs
         id: tf_outputs
         run: |
-          # Get EC2 DNS and handle if it's empty
           EC2_DNS=$(terraform output -raw ec2_public_dns)
           if [ -z "$EC2_DNS" ]; then
             echo "EC2 DNS is not available or empty"
@@ -54,7 +52,6 @@ jobs:
             echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
           fi
 
-          # Get ECR URL and handle if it's empty
           ECR_URL=$(terraform output -raw ecr_repository_url)
           if [ -z "$ECR_URL" ]; then
             echo "ECR URL is not available or empty"
@@ -62,19 +59,21 @@ jobs:
             echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
           fi
 
-          # Get AWS Region and handle if it's empty
           AWS_REGION=$(terraform output -raw aws_region)
           if [ -z "$AWS_REGION" ]; then
             echo "AWS Region is not available or empty"
           else
             echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
           fi
+        working-directory: terraform
 
-      # 8️⃣ Login to Amazon ECR (Login to AWS Elastic Container Registry)
+      # 8️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+          ECR_REGISTRY=$(echo $ECR_URL | cut -d'/' -f1)
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY  
 
+    
       # 9️⃣ Build Docker Image (Build the Docker image)
       - name: Build Docker image
         run: docker build -t app .
