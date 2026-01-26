@@ -3,12 +3,16 @@ resource "aws_s3_bucket" "terraform_state" {
   bucket = "kerrygold-terraform-state"  # Ensure this is globally unique
   acl    = "private"
 
-  versioning {
-    enabled = true
-  }
-
   lifecycle {
     prevent_destroy = false  # Prevent accidental deletion of the bucket
+  }
+}
+
+# S3 Bucket Versioning (deprecated versioning moved to a separate resource)
+resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
+  bucket = aws_s3_bucket.terraform_state.bucket
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
