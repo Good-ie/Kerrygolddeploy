@@ -86,7 +86,8 @@ jobs:
       - name: Push Docker image to ECR
         run: docker push $ECR_REPOSITORY:latest
 
-      # 1️⃣2️⃣ Deploy to EC2 (Deploy the Docker image to EC2)
+      
+      # 1️⃣2️⃣ Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -94,7 +95,16 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ env.ECR_REPOSITORY}}:latest
+            # Login to ECR
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REPOSITORY }}
+            
+            # Pull the latest image
+            docker pull ${{ env.ECR_REPOSITORY }}:latest
+            
+            # Stop and remove old container
             docker stop app || true
             docker rm app || true
+            
+            # Run new container
             docker run -d --name app -p 80:80 ${{ env.ECR_REPOSITORY }}:latest
+            
