@@ -8,14 +8,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
+      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 2. List the contents of the terraform directory (for debugging)
+      # 2. List files in terraform directory (for debugging)
       - name: List files in terraform directory
         run: ls -R terraform
-        # This will display all files in the terraform folder
+        # This will display all files in the terraform folder to make sure they're accessible
 
       # 3. Configure AWS credentials
       - name: Configure AWS credentials
@@ -34,12 +36,12 @@ jobs:
       # 5. Terraform Init
       - name: Terraform Init
         run: terraform init
-        working-directory: terraform
+        working-directory: terraform  # Ensure the working directory is set to terraform/
 
       # 6. Terraform Validate
       - name: Terraform Validate
         run: terraform validate
-        working-directory: terraform
+        working-directory: terraform  # Validate in the terraform directory
 
       # 7. Terraform Plan
       - name: Terraform Plan
