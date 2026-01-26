@@ -9,8 +9,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-
-    
     steps:
       # 1️⃣ Checkout code
       - name: Checkout repo
@@ -30,15 +28,21 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      # 4️⃣ Terraform Init
+      # 4️⃣ Debugging: Output the EC2 key name
+      - name: Debug EC2 Key Name
+        run: echo "EC2_KEY_NAME: ${{ secrets.EC2_KEY_NAME }}"
+
+      # 5️⃣ Terraform Init
       - name: Terraform Init
         run: terraform init
+        working-directory: terraform
 
-      # 5️⃣ Terraform Apply
+      # 6️⃣ Terraform Apply
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="key_name=${{ secrets.EC2_KEY_NAME }}"
+        working-directory: terraform
 
-      # 6️⃣ Read Terraform Outputs
+      # 7️⃣ Read Terraform Outputs
       - name: Read Terraform Outputs
         id: tf_outputs
         run: |
@@ -46,25 +50,25 @@ jobs:
           echo "ECR_URL=$(terraform output -raw ecr_repository_url)" >> $GITHUB_ENV
           echo "AWS_REGION=$(terraform output -raw aws_region)" >> $GITHUB_ENV
 
-      # 7️⃣ Login to Amazon ECR
+      # 8️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION \
           | docker login --username AWS --password-stdin $ECR_URL
 
-      # 8️⃣ Build Docker image
+      # 9️⃣ Build Docker image
       - name: Build Docker image
         run: docker build -t app .
 
-      # 9️⃣ Tag Docker image
+      # 🔟 Tag Docker image
       - name: Tag Docker image
         run: docker tag app:latest $ECR_URL:latest
 
-      # 🔟 Push Docker image to ECR
+      # 1️⃣1️⃣ Push Docker image to ECR
       - name: Push Docker image to ECR
         run: docker push $ECR_URL:latest
 
-      # 1️⃣1️⃣ Deploy to EC2
+      # 1️⃣2️⃣ Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
